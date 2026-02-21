@@ -1,0 +1,465 @@
+/* =========================================
+   CARTE INTERACTIVE (V3 - Grid System)
+   ========================================= */
+
+/* Container Principal - Responsive Fix */
+#game-map {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
+    max-height: calc(100vh - 280px);
+    background: url('../assets/background.png') no-repeat center center !important;
+    background-size: 100% 100% !important;
+    aspect-ratio: 7 / 4;
+    margin: 0 auto;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    overflow: hidden;
+    user-select: none;
+}
+
+/* Fond de carte (superposé sous la grille) */
+.map-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    background-size: cover;
+    background-position: center;
+}
+
+/* =========================================
+   GRILLE DE CASES (6 colonnes x 4 lignes)
+   ========================================= */
+
+.map-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    z-index: 5;
+}
+
+/* Case Individuelle */
+.map-cell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    /* Bordures plus blanches et visibles */
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    overflow: hidden;
+}
+
+/* Icône de Ressource */
+.map-cell .resource-icon {
+    font-size: 1.8rem;
+    opacity: 0.9;
+    transition: transform 0.2s;
+    z-index: 2;
+}
+
+.map-cell:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: scale(1.02);
+}
+
+.map-cell:hover .resource-icon {
+    transform: scale(1.15);
+}
+
+/* =========================================
+   ÉTATS DES CASES
+   ========================================= */
+
+/* 1. Verrouillée (Ressource Non Découverte) */
+.map-cell.locked {
+    pointer-events: none;
+    background: rgba(30, 30, 30, 0.7);
+    border-color: rgba(100, 100, 100, 0.3);
+}
+
+.map-cell.locked .resource-icon {
+    filter: grayscale(100%) brightness(0.4);
+    opacity: 0.4;
+}
+
+.map-cell.locked::after {
+    content: "🔒";
+    position: absolute;
+    font-size: 1rem;
+    top: 4px;
+    right: 4px;
+    opacity: 0.6;
+}
+
+/* 2. Disponible (Cliquable) */
+.map-cell.available {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: var(--color-secondary);
+}
+
+.map-cell.available:hover {
+    background: rgba(16, 185, 129, 0.3);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+}
+
+/* 3. À Explorer (Nouveau Débloqué - Animation Dorée) */
+.map-cell.explorable {
+    background: rgba(251, 191, 36, 0.2);
+    border-color: var(--color-warning);
+    animation: cell-pulse 2s infinite;
+}
+
+.map-cell.explorable .resource-icon {
+    animation: bounce-icon 1s infinite;
+}
+
+@keyframes cell-pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 15px 5px rgba(251, 191, 36, 0.3);
+    }
+}
+
+@keyframes bounce-icon {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+/* 4. Construit (Bâtiment Présent) */
+.map-cell.built {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: var(--color-info);
+}
+
+.map-cell.built .building-sprite {
+    font-size: 2rem;
+    position: relative;
+    z-index: 10;
+    animation: pop-in 0.4s ease-out;
+}
+
+/* Masquer l'icône de ressource si bâtiment présent */
+.map-cell.built .resource-icon {
+    display: none;
+}
+
+@keyframes pop-in {
+    from {
+        transform: scale(0);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* =========================================
+   VILLAGE CENTRAL (Occupe 2x2 au centre)
+   ========================================= */
+
+.map-cell.village {
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 2px solid var(--color-primary);
+    pointer-events: none;
+    z-index: 5;
+}
+
+.map-cell.village .village-sprite {
+    font-size: 2.2rem;
+}
+
+/* =========================================
+   TYPES DE TERRAIN (Couleurs de Fond)
+   ========================================= */
+
+.map-cell[data-terrain="forest"],
+.map-cell[data-terrain="river"],
+.map-cell[data-terrain="mountain"],
+.map-cell[data-terrain="plain"],
+.map-cell[data-terrain="oil_field"],
+.map-cell[data-terrain="uranium_soil"],
+.map-cell[data-terrain="wind"],
+.map-cell[data-terrain="sun"] {
+    background-color: transparent;
+}
+
+/* =========================================
+   SPRITES TERRAIN (Overlays visuels)
+   ========================================= */
+
+/* Base commune pour tous les sprites terrain */
+.map-cell.forest::before,
+.map-cell.mountain::before,
+.map-cell.oil_field::before,
+.map-cell.wind::before,
+.map-cell.sun::before,
+.map-cell.uranium_soil::before,
+.map-cell.enclosure::before {
+    content: '';
+    position: absolute;
+    top: 32.5%;
+    left: 32.5%;
+    width: 35%;
+    height: 35%;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.85;
+    transition: opacity 0.3s;
+}
+
+/* Masquer le sprite terrain quand un bâtiment est construit */
+.map-cell.built.forest::before,
+.map-cell.built.mountain::before,
+.map-cell.built.oil_field::before,
+.map-cell.built.wind::before,
+.map-cell.built.sun::before,
+.map-cell.built.uranium_soil::before,
+.map-cell.built.enclosure::before {
+    opacity: 0.15;
+}
+
+/* Sprites individuels par type */
+.map-cell.forest::before {
+    background-image: url('../assets/terrain_forest.png');
+}
+
+.map-cell.mountain::before {
+    background-image: url('../assets/terrain_mountain.png');
+}
+
+.map-cell.oil_field::before {
+    background-image: url('../assets/terrain_oil.png');
+}
+
+.map-cell.wind::before {
+    background-image: url('../assets/terrain_wind.png');
+}
+
+.map-cell.sun::before {
+    background-image: url('../assets/terrain_sun.png');
+}
+
+.map-cell.uranium_soil::before {
+    background-image: url('../assets/terrain_uranium.png');
+}
+
+.map-cell.enclosure::before {
+    background-image: url('../assets/terrain_enclosure.png');
+}
+
+/* La plaine et la rivière n'ont pas de sprite (visible via le fond) */
+.map-cell.river::before {
+    content: none;
+}
+
+.map-cell.plain::before {
+    content: none;
+}
+
+/* =========================================
+   TOOLTIP AU SURVOL
+   ========================================= */
+
+.map-cell .cell-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 100;
+}
+
+.map-cell:hover .cell-tooltip {
+    opacity: 1;
+}
+
+/* =========================================
+   RESPONSIVE FIXES
+   ========================================= */
+
+@media (max-width: 768px) {
+    #game-map {
+        max-height: calc(100vh - 220px);
+    }
+
+    .map-grid {
+        gap: 2px;
+        padding: 4px;
+    }
+
+    .map-cell .resource-icon {
+        font-size: 1.3rem;
+    }
+
+    .map-cell.village .village-sprite {
+        font-size: 2.5rem;
+    }
+}
+
+@media (max-height: 600px) {
+    #game-map {
+        max-height: 250px;
+    }
+}
+
+/* =========================================
+   BADGES DE PRODUCTION SUR LES TUILES
+   ========================================= */
+
+.cell-production-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(34, 197, 94, 0.85);
+    color: white;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 3px;
+    z-index: 12;
+    line-height: 1.2;
+    pointer-events: none;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+}
+
+.cell-production-badge.negative {
+    background: rgba(239, 68, 68, 0.85);
+}
+
+.cell-production-badge.building {
+    background: rgba(251, 191, 36, 0.85);
+    color: #1e293b;
+}
+
+.cell-pollution-badge {
+    position: absolute;
+    bottom: 25px;
+    /* Au-dessus de la jauge de stock */
+    right: 2px;
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 3px;
+    z-index: 12;
+    line-height: 1.2;
+    pointer-events: none;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* =========================================
+   STOCK RESTANT (Compteur numérique)
+   ========================================= */
+
+.cell-stock-counter {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    font-size: 0.55rem;
+    font-weight: 600;
+    color: #f59e0b;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 0px 3px;
+    border-radius: 2px;
+    z-index: 12;
+    pointer-events: none;
+    line-height: 1.3;
+}
+
+.cell-stock-counter.low {
+    color: #ef4444;
+    animation: stock-warn 1s infinite;
+}
+
+.cell-stock-counter.regenerating {
+    color: #22c55e;
+}
+
+@keyframes stock-warn {
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* =========================================
+   ÉNERGIE & FAILLITE
+   ========================================= */
+
+.build-timer.paused {
+    background: #ef4444 !important;
+    color: white !important;
+    border: 1px solid white;
+    animation: construction-stalled 1s infinite alternate;
+}
+
+.cell-production-badge.building.paused {
+    background: #ef4444 !important;
+    color: white !important;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+.map-cell.stalled {
+    background: rgba(239, 68, 68, 0.1) !important;
+}
+
+.source-card.disabled {
+    opacity: 0.5;
+    filter: grayscale(1);
+    cursor: not-allowed;
+    pointer-events: none;
+    border: 1px dashed #666;
+}
+
+@keyframes construction-stalled {
+    from {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+}
